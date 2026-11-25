@@ -141,10 +141,10 @@
                                     </Style>
                                 </DataGrid.ColumnHeaderStyle>
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Origen" Binding="{Binding Origin}" Width="88"/>
-                                    <DataGridTextColumn Header="Grupo" Binding="{Binding Group}" Width="112"/>
-                                    <DataGridTextColumn Header="Ruta" Binding="{Binding Path}" Width="*"/>
-                                    <DataGridTextColumn Header="Resultado" Binding="{Binding Detail}" Width="2*"/>
+                                    <DataGridTextColumn Header="Origen" Binding="{Binding Origin}" Width="100" MinWidth="100"/>
+                                    <DataGridTextColumn Header="Grupo" Binding="{Binding Group}" Width="120" MinWidth="120"/>
+                                    <DataGridTextColumn Header="Ruta" Binding="{Binding Path}" Width="*" MinWidth="220"/>
+                                    <DataGridTextColumn Header="Resultado" Binding="{Binding Detail}" Width="2*" MinWidth="260"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>

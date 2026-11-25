@@ -177,7 +177,12 @@ public partial class MainWindow : Window
         lastResult = result;
         DetailsButton.Visibility = Visibility.Visible;
         var problems = result.Findings.Count(item => item.Kind != FindingKind.Recovered);
-        RunStatus.Text = result.Sample ?? (problems == 0 ? "Comprobación terminada" : $"{problems:N0} incidencias");
+        RunStatus.Text = result.Sample ?? (problems switch
+        {
+            0 => "Comprobación terminada",
+            1 => "1 incidencia",
+            _ => $"{problems:N0} incidencias"
+        });
         RunStatus.ToolTip = RunStatus.Text;
         RenderCards();
     }
@@ -303,6 +308,8 @@ public partial class MainWindow : Window
 
         void Capture(string name)
         {
+            Surface.UpdateLayout();
+            Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ContextIdle);
             Surface.UpdateLayout();
             var bitmap = new RenderTargetBitmap((int)Surface.ActualWidth, (int)Surface.ActualHeight, 96, 96, PixelFormats.Pbgra32);
             bitmap.Render(Surface);
