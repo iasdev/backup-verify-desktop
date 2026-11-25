@@ -2,7 +2,7 @@
 
 Backup Verify es una app portátil para Windows que comprueba tus copias 3‑2‑1. Toma el NAS como referencia y compara sus archivos con los del disco USB y la copia cifrada en OneDrive.
 
-La app comprueba todos los grupos de carpetas que hayas configurado. Las tres tarjetas te muestran el estado de cada origen. Desde **Ver detalle** puedes ver qué archivos faltan, sobran, son distintos o no se pudieron comprobar.
+En **Verificaciones**, elige un modo y pulsa **Verificar**. La app usa todos los grupos de carpetas configurados. Las tres tarjetas te muestran el estado de cada origen. Desde **Ver detalle** puedes ver qué archivos faltan, sobran, son distintos o no se pudieron comprobar.
 
 ![Pantalla principal con las tarjetas del NAS, USB y OneDrive y los cuatro modos](docs/capturas/01-verificacion.png)
 
@@ -20,7 +20,7 @@ Las pruebas de recuperación guardan los archivos en `checks/`, junto a la app. 
 ## Primer uso
 
 1. Descarga y descomprime el ZIP para Windows desde [GitHub Releases](https://github.com/iasdev/backup-verify-desktop/releases/latest) y abre `BackupVerify.exe`.
-2. Conéctate a las carpetas del NAS desde el Explorador de Windows y conecta el disco de copia a tu PC. En la app, abre **Configuración**, selecciona el disco y pulsa **Guardar**.
+2. Conéctate a las carpetas del NAS desde el Explorador de Windows y conecta el disco de copia a tu PC. En **Configuración**, elige tu disco USB NTFS y pulsa **Guardar**. Si acabas de conectarlo, pulsa **Actualizar**. Usa **Volver**, abajo a la derecha, para regresar a la pantalla principal.
 3. En `config.json`, indica dónde están las carpetas del NAS, el USB y OneDrive, y qué archivos quieres usar en **Archivos elegidos**. Para OneDrive, usa tu configuración existente de rclone. Si editas el archivo con la app abierta, pulsa **Recargar**.
 
 ## Más capturas
