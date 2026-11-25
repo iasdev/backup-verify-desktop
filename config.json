@@ -1,0 +1,27 @@
+{
+  "usbVolumeId": "",
+  "rcloneConfigPath": "rclone.conf",
+  "backupSets": [
+    {
+      "name": "Fotos",
+      "nasPath": "\\\\nas\\fotos",
+      "usbPath": "Backup NAS a HDD/Fotos",
+      "cloudPath": "onedrive-crypt:Fotos",
+      "testFiles": []
+    },
+    {
+      "name": "PC",
+      "nasPath": "\\\\nas\\pc",
+      "usbPath": "Backup NAS a HDD/PC",
+      "cloudPath": "onedrive-crypt:PC",
+      "testFiles": []
+    },
+    {
+      "name": "Otros backups",
+      "nasPath": "\\\\nas\\otros backups",
+      "usbPath": "Backup NAS a HDD/Otros backups",
+      "cloudPath": "onedrive-crypt:Otros backups",
+      "testFiles": []
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+name: Windows portable release
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Publish Windows x64
+        shell: pwsh
+        run: |
+          dotnet publish BackupVerify.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist/app
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item config.json dist/app/
+          New-Item -ItemType Directory dist/app/checks | Out-Null
+          $version = '1.73.2'
+          $filename = "rclone-v$version-windows-amd64.zip"
+          $base = "https://downloads.rclone.org/v$version"
+          Invoke-WebRequest "$base/$filename" -OutFile "$env:RUNNER_TEMP/$filename"
+          $checksums = (Invoke-WebRequest "$base/SHA256SUMS").Content -split "`n"
+          $line = @($checksums | Where-Object { $_.TrimEnd().EndsWith("  $filename") -or $_.TrimEnd().EndsWith(" *$filename") })
+          if ($line.Count -ne 1 -or (Get-FileHash "$env:RUNNER_TEMP/$filename").Hash -ne ($line[0] -split '\s+')[0]) { throw 'rclone checksum mismatch' }
+          Expand-Archive "$env:RUNNER_TEMP/$filename" "$env:RUNNER_TEMP/rclone"
+          Copy-Item "$env:RUNNER_TEMP/rclone/rclone-v$version-windows-amd64/rclone.exe" dist/app/
+          Copy-Item "$env:RUNNER_TEMP/rclone/rclone-v$version-windows-amd64/README.txt" dist/app/rclone-README.txt
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [IO.Compression.ZipFile]::CreateFromDirectory((Resolve-Path dist/app).Path, (Join-Path (Resolve-Path dist).Path 'BackupVerify-win-x64.zip'), [IO.Compression.CompressionLevel]::Optimal, $true)
+      - name: Capture Windows screens
+        shell: pwsh
+        run: |
+          $screens = Join-Path (Resolve-Path dist).Path 'screenshots'
+          $app = Start-Process -FilePath (Resolve-Path dist/app/BackupVerify.exe).Path -ArgumentList "--screenshots `"$screens`"" -PassThru
+          if (-not $app.WaitForExit(60000)) { Stop-Process -Id $app.Id -Force; throw 'Screenshot capture timed out' }
+          if ($app.ExitCode -ne 0 -or @(Get-ChildItem $screens -Filter '*.png').Count -ne 5) { throw 'Screenshot capture failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BackupVerify-win-x64
+          path: |
+            dist/BackupVerify-win-x64.zip
+            dist/screenshots/*.png
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: BackupVerify-win-x64
+      - name: Publish stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" BackupVerify-win-x64.zip screenshots/*.png --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --latest
