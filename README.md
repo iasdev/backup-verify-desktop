@@ -2,7 +2,7 @@
 
 Backup Verify es una app portátil para Windows que comprueba tus copias 3‑2‑1. Toma el NAS como referencia y compara sus archivos con los del disco USB y la copia cifrada en OneDrive.
 
-Puedes comprobar todos los grupos de carpetas a la vez o elegir uno. Las tres tarjetas te muestran el estado de cada origen. Desde **Ver detalle** puedes ver qué archivos faltan, sobran, son distintos o no se pudieron comprobar.
+La app comprueba todos los grupos de carpetas que hayas configurado. Las tres tarjetas te muestran el estado de cada origen. Desde **Ver detalle** puedes ver qué archivos faltan, sobran, son distintos o no se pudieron comprobar.
 
 ![Pantalla principal con las tarjetas del NAS, USB y OneDrive y los cuatro modos](docs/capturas/01-verificacion.png)
 

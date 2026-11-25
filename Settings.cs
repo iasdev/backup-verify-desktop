@@ -1,3 +1,5 @@
+using Microsoft.Win32.SafeHandles;
+using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -92,9 +94,43 @@ internal sealed record Volume(string Root, string Label, string Id)
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetVolumeNameForVolumeMountPoint(string mountPoint, StringBuilder volumeName, uint size);
 
-    public static Volume[] Connected() => DriveInfo.GetDrives()
-        .Where(drive => drive.DriveType is DriveType.Fixed or DriveType.Removable)
-        .Select(Find).OfType<Volume>().ToArray();
+    private const uint QueryStorageProperty = 0x002D1400;
+    private const int BusTypeOffset = 28; // STORAGE_DEVICE_DESCRIPTOR.BusType
+    private const uint UsbBusType = 7;
+    private const uint OpenExisting = 3;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern SafeFileHandle CreateFile(string path, uint access, FileShare share, IntPtr security,
+        uint disposition, uint flags, IntPtr template);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool DeviceIoControl(SafeFileHandle handle, uint controlCode, byte[] input,
+        uint inputSize, [Out] byte[] output, uint outputSize, out uint returned, IntPtr overlapped);
+
+    public static Volume[] Connected()
+    {
+        var windowsRoot = Path.GetPathRoot(Environment.SystemDirectory);
+        return DriveInfo.GetDrives()
+            .Where(drive => (drive.DriveType is DriveType.Fixed or DriveType.Removable) &&
+                !string.Equals(drive.Name, windowsRoot, StringComparison.OrdinalIgnoreCase))
+            .Select(Find).OfType<Volume>().ToArray();
+    }
+
+    private static bool IsUsb(string root)
+    {
+        using var handle = CreateFile(@"\\.\" + root.TrimEnd('\\'), 0,
+            FileShare.ReadWrite | FileShare.Delete, IntPtr.Zero, OpenExisting, 0, IntPtr.Zero);
+        if (handle.IsInvalid) return false;
+
+        // The zeroed query selects StorageDeviceProperty and PropertyStandardQuery.
+        var query = new byte[12];
+        var descriptor = new byte[1024];
+        return DeviceIoControl(handle, QueryStorageProperty, query, (uint)query.Length, descriptor,
+                   (uint)descriptor.Length, out var returned, IntPtr.Zero) &&
+               returned >= BusTypeOffset + sizeof(uint) &&
+               BinaryPrimitives.ReadUInt32LittleEndian(descriptor.AsSpan(BusTypeOffset)) == UsbBusType;
+    }
 
     private static Volume? Find(DriveInfo drive)
     {
@@ -102,7 +138,7 @@ internal sealed record Volume(string Root, string Label, string Id)
         {
             var id = new StringBuilder(128);
             return drive.IsReady && drive.DriveFormat.Equals("NTFS", StringComparison.OrdinalIgnoreCase)
-                && GetVolumeNameForVolumeMountPoint(drive.Name, id, (uint)id.Capacity)
+                && IsUsb(drive.Name) && GetVolumeNameForVolumeMountPoint(drive.Name, id, (uint)id.Capacity)
                 ? new Volume(drive.Name, drive.VolumeLabel, id.ToString()) : null;
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) { return null; }

@@ -15,7 +15,6 @@ public partial class MainWindow : Window
     private CheckResult? lastResult;
     private Volume[] volumes = [];
     private string configurationStatus = "";
-    private bool initializing = true;
     private bool IsBusy => cancellation is not null;
     private record Card(string Name, string Role, string Icon, string Status, string Summary, string Color);
     private record DetailRow(string Origin, string Group, string Path, string Detail);
@@ -26,8 +25,6 @@ public partial class MainWindow : Window
         VersionLabel.Text = $"v{typeof(MainWindow).Assembly.GetName().Version?.ToString(3)}";
         ApplyMode();
         LoadSettings();
-        initializing = false;
-        RenderCards();
     }
 
     private static string NameOf(Source source) => source switch
@@ -55,8 +52,6 @@ public partial class MainWindow : Window
             configurationStatus = $"{settings.BackupSets.Length} grupos · {settings.BackupSets.Sum(set => set.TestFiles.Length)} archivos elegidos";
         }
         catch (Exception error) { settings = null; configurationStatus = error.Message; }
-        Scope.ItemsSource = new object[] { "Todos" }.Concat(settings?.BackupSets ?? []).ToArray();
-        Scope.SelectedIndex = 0;
         ConfigStatus.Text = configurationStatus;
         Footer.Text = settings is null ? "Revisa config.json" : "";
         RefreshVolumes();
@@ -69,7 +64,8 @@ public partial class MainWindow : Window
         Drives.ItemsSource = volumes;
         Drives.SelectedItem = SelectedVolume;
         DriveStatus.Text = SelectedVolume is { } volume ? $"Disco vinculado · {volume}" :
-            string.IsNullOrEmpty(settings?.UsbVolumeId) ? "Selecciona el volumen NTFS del backup." : "Disco vinculado desconectado";
+            !string.IsNullOrEmpty(settings?.UsbVolumeId) ? "Disco vinculado desconectado" :
+            volumes.Length == 0 ? "Conecta un disco USB NTFS y pulsa Actualizar." : "Selecciona el disco USB del backup.";
     }
 
     private void RenderCards()
@@ -80,15 +76,14 @@ public partial class MainWindow : Window
             var status = result?.Status ?? (source == Source.Usb
                 ? SelectedVolume is not null ? "Conectado" : string.IsNullOrEmpty(settings?.UsbVolumeId) ? "Sin vincular" : "Desconectado"
                 : "Sin verificar");
-            var selected = Scope.SelectedItem as BackupSet;
             var summary = result is { Checked: > 0 } || result is { Files: > 0 } || result is { Folders: > 0 }
                 ? mode is CheckMode.Selected or CheckMode.Random ? $"{result.Files:N0} recuperados"
                     : $"{result.Files:N0} archivos · {result.Folders:N0} carpetas"
                 : source switch
                 {
-                    Source.Nas => selected?.NasPath ?? "Recursos SMB",
-                    Source.Usb => SelectedVolume?.ToString() ?? selected?.UsbPath ?? "Disco externo",
-                    _ => selected?.CloudPath ?? "rclone crypt"
+                    Source.Nas => "Recursos SMB",
+                    Source.Usb => SelectedVolume?.ToString() ?? "Disco externo",
+                    _ => "rclone crypt"
                 };
             return new Card(NameOf(source),
                 source switch { Source.Nas => "Original", Source.Usb => "Local", _ => "Fuera de casa" },
@@ -124,11 +119,6 @@ public partial class MainWindow : Window
         ResetResult();
     }
 
-    private void ScopeChanged(object sender, SelectionChangedEventArgs args)
-    {
-        if (!initializing) ResetResult();
-    }
-
     private void ResetResult()
     {
         lastResult = null;
@@ -144,7 +134,6 @@ public partial class MainWindow : Window
         if (IsBusy || settings is not { } current) return;
         RefreshVolumes();
         ResetResult();
-        var sets = Scope.SelectedItem is BackupSet set ? new[] { set } : current.BackupSets;
         using var operation = new CancellationTokenSource();
         cancellation = operation;
         SetBusy(true);
@@ -156,7 +145,7 @@ public partial class MainWindow : Window
         try
         {
             var verification = new Verification(current, SelectedVolume?.Root);
-            var result = await Task.Run(() => verification.Run(mode, sets, progress, operation.Token));
+            var result = await Task.Run(() => verification.Run(mode, current.BackupSets, progress, operation.Token));
             Present(result);
         }
         catch (OperationCanceledException) { RunStatus.Text = "Cancelada"; }
@@ -189,7 +178,7 @@ public partial class MainWindow : Window
 
     private void SetBusy(bool running)
     {
-        Scope.IsEnabled = QuickButton.IsEnabled = CompleteButton.IsEnabled = SelectedButton.IsEnabled =
+        QuickButton.IsEnabled = CompleteButton.IsEnabled = SelectedButton.IsEnabled =
             RandomButton.IsEnabled = !running;
         VerifyButton.IsEnabled = !running && settings is not null;
         Activity.Visibility = CancelButton.Visibility = running ? Visibility.Visible : Visibility.Collapsed;
@@ -210,6 +199,7 @@ public partial class MainWindow : Window
 
     private void ShowPanel(FrameworkElement panel)
     {
+        SettingsButton.Visibility = ReferenceEquals(panel, Configuration) ? Visibility.Collapsed : Visibility.Visible;
         foreach (var item in new FrameworkElement[] { Dashboard, Details, Configuration })
             item.Visibility = ReferenceEquals(item, panel) ? Visibility.Visible : Visibility.Collapsed;
     }
@@ -274,8 +264,6 @@ public partial class MainWindow : Window
             new BackupSet("PC", @"\\nas\pc", "Backup NAS a HDD/PC", "onedrive-crypt:PC", []),
             new BackupSet("Otros backups", @"\\nas\otros backups", "Backup NAS a HDD/Otros backups", "onedrive-crypt:Otros backups", [])
         ]);
-        Scope.ItemsSource = new object[] { "Todos" }.Concat(settings.BackupSets).ToArray();
-        Scope.SelectedIndex = 0;
         ConfigStatus.Text = "3 grupos · 1 archivo elegido";
         Footer.Text = "";
         volumes = [new Volume(@"E:\", "BACKUP HDD", "demo")];
