@@ -51,7 +51,7 @@ jobs:
             dist/screenshots/*.png
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -64,4 +64,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" BackupVerify-win-x64.zip screenshots/*.png --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --latest
+        run: |
+          if [[ "$GITHUB_REF" == refs/heads/master ]]; then
+            commit="${GITHUB_SHA:0:12}"
+            tag="build-$commit"
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              exit 0
+            fi
+            gh release create "$tag" BackupVerify-win-x64.zip screenshots/*.png \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "Backup Verify · $commit" --generate-notes --latest
+          else
+            gh release create "$TAG" BackupVerify-win-x64.zip screenshots/*.png \
+              --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --latest
+          fi
