@@ -1,42 +1,42 @@
 # Backup Verify
 
-Aplicación de escritorio portátil para comprobar copias 3‑2‑1 en Windows x64. Compara recursos SMB del NAS con un disco NTFS conectado al PC y un espejo OneDrive cifrado con rclone crypt.
+Backup Verify es una app portátil para Windows que comprueba tus copias 3‑2‑1. Toma el NAS como referencia y compara sus archivos con los del disco USB y la copia cifrada en OneDrive.
 
-## Inicio
+Puedes comprobar todos los grupos de carpetas a la vez o elegir uno. Las tres tarjetas te muestran el estado de cada origen. Desde **Ver detalle** puedes ver qué archivos faltan, sobran, son distintos o no se pudieron comprobar.
 
-1. Descarga y descomprime `BackupVerify-win-x64.zip` desde [Releases](https://github.com/iasdev/backup-verify-desktop/releases). Abre `BackupVerify.exe` desde una carpeta donde puedas escribir.
-2. Accede a cada recurso SMB desde el Explorador de Windows con tu usuario del NAS.
-3. Copia tu `rclone.conf` existente junto al EXE o indica su ruta en `rcloneConfigPath`. Usa un remoto crypt con acceso al OneDrive. Trata ese archivo como una credencial.
-4. Conecta el HDD al PC. En **Configuración → Disco USB**, elige el volumen y pulsa **Guardar**. La aplicación lo identifica por el GUID del volumen aunque Windows cambie su letra.
-5. Revisa `config.json` y pulsa **Recargar** si lo has editado con la app abierta.
+![Pantalla principal con las tarjetas del NAS, USB y OneDrive y los cuatro modos](docs/capturas/01-verificacion.png)
 
-El ZIP incluye el runtime de .NET y `rclone.exe`.
+## Modos de verificación
 
-## Configuración
+| Modo | Qué hace |
+| --- | --- |
+| **Rápida** | Compara rutas y tamaños. Cuenta los archivos y las carpetas de cada origen. |
+| **Completa** | Comprueba también el contenido de los archivos. Puede tardar más porque lee los archivos del NAS. |
+| **Archivos elegidos** | Recupera desde los tres orígenes los archivos que indiques en `config.json` y comprueba que las copias coincidan con el original. |
+| **Aleatorio** | Elige un archivo del NAS al azar, te muestra cuál salió e intenta recuperarlo desde el USB y OneDrive para compararlo con el original. |
 
-Cada entrada de `backupSets` vincula un recurso compartido con sus dos espejos.
+Las pruebas de recuperación guardan los archivos en `checks/`, junto a la app. Cada versión lleva el sufijo `_nas`, `_usb` o `_cloud` antes de la extensión. La versión de OneDrive se guarda descifrada.
 
-| Campo | Ejemplo |
-|---|---|
-| `name` | `Fotos` |
-| `nasPath` | `\\nas\fotos` (en JSON, `"\\\\nas\\fotos"`) |
-| `usbPath` | `Backup NAS a HDD/Fotos` (relativa a la raíz del volumen) |
-| `cloudPath` | `onedrive-crypt:Fotos` |
-| `testFiles` | `["2025/viaje.jpg", "2025/evento/IMG_001.jpg"]` (rutas relativas al grupo) |
+## Primer uso
 
-## Modos
+1. Descarga y descomprime el ZIP para Windows desde [GitHub Releases](https://github.com/iasdev/backup-verify-desktop/releases/latest) y abre `BackupVerify.exe`.
+2. Conéctate a las carpetas del NAS desde el Explorador de Windows y conecta el disco de copia a tu PC. En la app, abre **Configuración**, selecciona el disco y pulsa **Guardar**.
+3. En `config.json`, indica dónde están las carpetas del NAS, el USB y OneDrive, y qué archivos quieres usar en **Archivos elegidos**. Para OneDrive, usa tu configuración existente de rclone. Si editas el archivo con la app abierta, pulsa **Recargar**.
 
-- **Rápida** compara rutas y tamaños, y cuenta archivos y carpetas por origen.
-- **Completa** compara el USB con SHA‑256 y OneDrive con `rclone cryptcheck`. OneDrive debe presentar un hash compatible para cada archivo cifrado.
-- **Archivos elegidos** recupera las rutas de `testFiles`.
-- **Aleatorio** elige un archivo con igual probabilidad entre los archivos de los grupos seleccionados.
+## Más capturas
 
-Las recuperaciones se guardan en `checks/<ejecución>/<grupo>/` junto al EXE con sufijos `_nas`, `_usb` y `_cloud`. La versión de OneDrive se recupera descifrada. La app compara por SHA‑256 los archivos recuperados con el original y conserva las recuperaciones correctas si falla otro origen. Ejecuta las verificaciones cuando las tareas de copia estén detenidas para comparar un conjunto estable.
+**Resumen de una verificación completa**
 
-## Compilación
+![Resumen con el estado y los recuentos de los tres orígenes](docs/capturas/02-resumen.png)
 
-```powershell
-dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -o dist/app
-```
+**Detalle de una diferencia**
 
-Para ejecutar una compilación local añade `config.json` y `rclone.exe` junto al ejecutable. GitHub Actions genera el ZIP portátil y las capturas de Windows. Las etiquetas `v*` publican una release estable.
+![Tabla que indica un archivo faltante en OneDrive](docs/capturas/03-detalle.png)
+
+**Prueba de recuperación aleatoria**
+
+![Resultado con las tres versiones recuperadas de un archivo](docs/capturas/04-recuperacion.png)
+
+**Configuración**
+
+![Selección del disco USB y acceso a config.json](docs/capturas/05-configuracion.png)
