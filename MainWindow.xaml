@@ -183,7 +183,7 @@
             </Grid>
             <Border Grid.Row="2" BorderBrush="{StaticResource Edge}" BorderThickness="0,1,0,0" Margin="0,12,0,0" Padding="0,11,0,0">
                 <DockPanel>
-                    <TextBlock DockPanel.Dock="Right" Text="v1.0.0" Foreground="{StaticResource Muted}" FontSize="12"/>
+                    <TextBlock DockPanel.Dock="Right" x:Name="VersionLabel" Foreground="{StaticResource Muted}" FontSize="12"/>
                     <TextBlock x:Name="Footer" Foreground="{StaticResource Muted}" FontSize="12" TextTrimming="CharacterEllipsis"/>
                 </DockPanel>
             </Border>

@@ -29,9 +29,8 @@ jobs:
           $filename = "rclone-v$version-windows-amd64.zip"
           $base = "https://downloads.rclone.org/v$version"
           Invoke-WebRequest "$base/$filename" -OutFile "$env:RUNNER_TEMP/$filename"
-          $checksums = (Invoke-WebRequest "$base/SHA256SUMS").Content -split "`n"
-          $line = @($checksums | Where-Object { $_.TrimEnd().EndsWith("  $filename") -or $_.TrimEnd().EndsWith(" *$filename") })
-          if ($line.Count -ne 1 -or (Get-FileHash "$env:RUNNER_TEMP/$filename").Hash -ne ($line[0] -split '\s+')[0]) { throw 'rclone checksum mismatch' }
+          $sha256 = 'b77a72eab9692f9032dac89d7e13e07ce4747acd9ae402168cc8fe306de1138e'
+          if ((Get-FileHash "$env:RUNNER_TEMP/$filename").Hash -ne $sha256) { throw 'rclone checksum mismatch' }
           Expand-Archive "$env:RUNNER_TEMP/$filename" "$env:RUNNER_TEMP/rclone"
           Copy-Item "$env:RUNNER_TEMP/rclone/rclone-v$version-windows-amd64/rclone.exe" dist/app/
           Copy-Item "$env:RUNNER_TEMP/rclone/rclone-v$version-windows-amd64/README.txt" dist/app/rclone-README.txt
