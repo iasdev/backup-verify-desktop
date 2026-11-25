@@ -318,10 +318,8 @@ internal sealed class Verification(Settings settings, string? usbRoot)
     {
         token.ThrowIfCancellationRequested();
         var config = Path.GetFullPath(settings.RcloneConfigPath, AppContext.BaseDirectory);
-        var executable = Path.Combine(AppContext.BaseDirectory, "rclone.exe");
         if (!File.Exists(config)) throw new IOException("No se encuentra rclone.conf. Revisa rcloneConfigPath.");
-        if (!File.Exists(executable)) throw new IOException("No se encuentra rclone.exe junto a BackupVerify.exe.");
-        var start = new ProcessStartInfo(executable)
+        var start = new ProcessStartInfo(BundledFiles.RclonePath())
         {
             RedirectStandardOutput = true, RedirectStandardError = true,
             StandardOutputEncoding = Encoding.UTF8, StandardErrorEncoding = Encoding.UTF8,

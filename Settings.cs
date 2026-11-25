@@ -1,6 +1,7 @@
 using Microsoft.Win32.SafeHandles;
 using System.Buffers.Binary;
 using System.IO;
+using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -20,6 +21,7 @@ internal sealed record Settings(string UsbVolumeId, string RcloneConfigPath, Bac
 
     public static Settings Load()
     {
+        BundledFiles.EnsureConfig(ConfigPath);
         var settings = JsonSerializer.Deserialize<Settings>(File.ReadAllText(ConfigPath), Json)
             ?? throw new InvalidDataException("config.json está vacío.");
         if (settings.BackupSets is not { Length: > 0 } || string.IsNullOrWhiteSpace(settings.RcloneConfigPath))
@@ -50,6 +52,56 @@ internal sealed record Settings(string UsbVolumeId, string RcloneConfigPath, Bac
         {
             File.WriteAllText(temporary, JsonSerializer.Serialize(this, Json));
             File.Move(temporary, ConfigPath, overwrite: true);
+        }
+        finally { File.Delete(temporary); }
+    }
+}
+
+internal static class BundledFiles
+{
+    public static void EnsureConfig(string path)
+    {
+        if (File.Exists(path)) return;
+        using var template = typeof(BundledFiles).Assembly.GetManifestResourceStream("BackupVerify.DefaultConfig")
+            ?? throw new FileNotFoundException("No se encuentra config.json.", path);
+        WriteIfMissing(path, template);
+    }
+
+    public static string RclonePath()
+    {
+        var overridePath = Path.Combine(AppContext.BaseDirectory, "rclone.exe");
+        if (File.Exists(overridePath)) return overridePath;
+
+        var directory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "BackupVerify", "rclone", typeof(BundledFiles).Module.ModuleVersionId.ToString("N"));
+        var executable = Path.Combine(directory, "rclone.exe");
+        if (File.Exists(executable)) return executable;
+
+        using var bundle = typeof(BundledFiles).Assembly.GetManifestResourceStream("BackupVerify.RcloneBundle")
+            ?? throw new FileNotFoundException("No se encuentra rclone.exe. Descarga el ejecutable desde GitHub Releases.");
+        using var archive = new ZipArchive(bundle, ZipArchiveMode.Read);
+        Directory.CreateDirectory(directory);
+        Extract("README.txt", "rclone-README.txt");
+        Extract("rclone.exe", "rclone.exe");
+        return executable;
+
+        void Extract(string entryName, string destination)
+        {
+            var entry = archive.Entries.Single(item => item.Name == entryName);
+            using var stream = entry.Open();
+            WriteIfMissing(Path.Combine(directory, destination), stream);
+        }
+    }
+
+    private static void WriteIfMissing(string path, Stream input)
+    {
+        var temporary = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            using (var output = File.Create(temporary))
+                input.CopyTo(output);
+            try { File.Move(temporary, path); }
+            catch (IOException) when (File.Exists(path)) { }
         }
         finally { File.Delete(temporary); }
     }

@@ -19,6 +19,6 @@ Las pruebas de recuperación guardan los archivos en `checks/`, junto a la app. 
 
 ## Primer uso
 
-1. Descarga y descomprime el ZIP para Windows desde [GitHub Releases](https://github.com/iasdev/backup-verify-desktop/releases/latest) y abre `BackupVerify.exe`.
+1. Descarga `BackupVerify.exe` para Windows x64 desde [GitHub Releases](https://github.com/iasdev/backup-verify-desktop/releases/latest) y ábrelo desde una carpeta donde puedas guardar archivos. La app crea `config.json` a su lado la primera vez.
 2. Conéctate a las carpetas del NAS desde el Explorador de Windows y conecta el disco de copia a tu PC. En **Configuración**, elige tu disco USB NTFS y pulsa **Guardar**. Si acabas de conectarlo, pulsa **Actualizar**. Usa **Volver**, abajo a la derecha, para regresar a la pantalla principal.
 3. En `config.json`, indica dónde están las carpetas del NAS, el USB y OneDrive, y qué archivos quieres usar en **Archivos elegidos**. Para OneDrive, usa tu configuración existente de rclone. Si editas el archivo con la app abierta, pulsa **Recargar**.

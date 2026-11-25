@@ -11,5 +11,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Resource Include="Assets/BackupVerify.ico" />
+    <EmbeddedResource Include="config.json" LogicalName="BackupVerify.DefaultConfig" />
+    <EmbeddedResource Include="$(RcloneBundle)" LogicalName="BackupVerify.RcloneBundle" Condition="'$(RcloneBundle)' != ''" />
   </ItemGroup>
 </Project>
